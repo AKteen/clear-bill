@@ -1,0 +1,331 @@
+import React, { useState, useRef, useEffect } from 'react';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:8000';
+
+function App() {
+  const [messages, setMessages] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const addMessage = (content, type, data = null) => {
+    const message = {
+      id: Date.now(),
+      content,
+      type,
+      timestamp: new Date(),
+      data
+    };
+    setMessages(prev => [...prev, message]);
+  };
+
+  const formatText = (text) => {
+    if (!text) return '';
+    
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/`(.*?)`/g, '$1')
+      .replace(/\n\s*\n/g, '\n\n')
+      .trim();
+  };
+
+  const uploadFile = async (file) => {
+    setIsLoading(true);
+    addMessage(`Uploading ${file.name}...`, 'user');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const { data } = response.data;
+      addMessage('Document processed successfully!', 'bot', data);
+      
+      // Add to documents list
+      setDocuments(prev => [data, ...prev]);
+      
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 'Upload failed';
+      
+      // Check if it's a policy violation rejection
+      if (error.response?.status === 400 && errorMsg.includes('policy violations')) {
+        addMessage(`❌ Upload Rejected: ${errorMsg}`, 'bot');
+        addMessage('Please ensure your document contains: Invoice Number, Amount, Date, and Vendor Name with valid formatting.', 'bot');
+      } else {
+        addMessage(`Error: ${errorMsg}`, 'bot');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      uploadFile(file);
+    }
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    const file = event.dataTransfer.files[0];
+    if (file) {
+      uploadFile(file);
+    }
+  };
+
+  const handleDocumentClick = (doc) => {
+    setSelectedDocument(doc);
+    setMessages([
+      {
+        id: Date.now(),
+        content: `Viewing ${doc.original_filename}`,
+        type: 'user',
+        timestamp: new Date(),
+      },
+      {
+        id: Date.now() + 1,
+        content: 'Document loaded from history',
+        type: 'bot',
+        timestamp: new Date(),
+        data: doc
+      }
+    ]);
+  };
+
+  const formatTimestamp = (timestamp) => {
+    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const renderAuditResult = (auditResult) => {
+    if (!auditResult) return null;
+
+    const { is_compliant, compliance_score, violations, summary } = auditResult;
+
+    return (
+      <div className="mt-4 p-4 bg-zinc-950 rounded-lg border border-zinc-800">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-zinc-300">Audit Result</span>
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+            is_compliant ? 'bg-green-600 text-white' : 'bg-yellow-600 text-white'
+          }`}>
+            {compliance_score}% Compliant
+          </span>
+        </div>
+        
+        <p className="text-[15px] text-white mb-3 leading-relaxed">{summary}</p>
+        
+        {violations && violations.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-xs font-medium text-zinc-400 mb-2">Issues Found:</h4>
+            {violations.map((violation, index) => (
+              <div key={index} className={`p-3 rounded-lg border-l-4 ${
+                violation.severity === 'warning' ? 'bg-yellow-900/20 border-yellow-500 text-yellow-200' :
+                violation.severity === 'high' ? 'bg-red-900/20 border-red-500 text-red-200' :
+                'bg-orange-900/20 border-orange-500 text-orange-200'
+              }`}>
+                <div className="font-medium text-[15px] mb-1">{violation.rule_name}</div>
+                <div className="text-sm opacity-90">{violation.message}</div>
+                {violation.flagged_items && (
+                  <div className="mt-2 text-xs opacity-75">
+                    Flagged items: {violation.flagged_items.join(', ')}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-orange-600 flex">
+      {/* Fixed Sidebar */}
+      <div className="w-64 bg-zinc-950 border-r border-zinc-800 flex flex-col fixed h-full">
+        <div className="p-3 border-b border-zinc-800">
+          <h2 className="text-sm font-medium text-zinc-300">Document History</h2>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto">
+          {documents.length === 0 ? (
+            <div className="p-4 text-center text-zinc-500 text-sm">
+              No documents yet
+            </div>
+          ) : (
+            <div className="p-2 space-y-1">
+              {documents.map((doc, index) => (
+                <div
+                  key={doc.id || index}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors hover:bg-zinc-900 ${
+                    selectedDocument?.id === doc.id ? 'bg-zinc-900 border border-zinc-700' : ''
+                  }`}
+                  onClick={() => handleDocumentClick(doc)}
+                >
+                  <div className="text-sm font-medium text-orange-600 truncate">
+                    {doc.original_filename}
+                  </div>
+                  <div className="text-xs text-zinc-400 mt-1">
+                    {doc.file_type} • {new Date(doc.created_at).toLocaleDateString()}
+                  </div>
+                  {doc.is_duplicate && (
+                    <div className="text-xs text-yellow-400 mt-1">⚠️ Duplicate</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Content with left margin for fixed sidebar */}
+      <div className="flex-1 flex flex-col ml-64">
+        {/* Compact Navbar - Fixed */}
+        <div className="bg-zinc-950 border-b border-zinc-800 p-3 fixed top-0 right-0 left-64 z-10">
+          <h1 className="text-base font-medium text-orange-600">ClearBill</h1>
+          <p className="text-xs text-zinc-400">AI-powered bill auditing and compliance verification</p>
+        </div>
+
+        {/* Chat Area with top margin for fixed navbar */}
+        <div className="flex-1 flex flex-col mt-16">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full">
+                <div className="text-center text-zinc-500">
+                  <div className="text-5xl mb-4">📄</div>
+                  <p className="text-lg">Upload a document to get started</p>
+                  <p className="text-sm text-zinc-400 mt-2">Use the upload area at the bottom</p>
+                </div>
+              </div>
+            )}
+            
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-2xl px-4 py-3 rounded-2xl shadow-lg ${
+                  message.type === 'user' 
+                    ? 'bg-zinc-950 text-white ml-auto rounded-br-md border border-zinc-800' 
+                    : 'bg-black text-white mr-auto rounded-bl-md border border-zinc-800'
+                }`}>
+                  <div className="text-[15px] leading-relaxed">{message.content}</div>
+                  
+                  {message.data && (
+                    <div className="mt-3 space-y-2">
+                      <div className="text-xs opacity-75 border-t border-zinc-800 pt-2">
+                        <div className="mb-1">
+                          <span className="font-medium">File:</span> {message.data.original_filename}
+                        </div>
+                        <div className="mb-1">
+                          <span className="font-medium">Type:</span> {message.data.file_type}
+                        </div>
+                        {message.data.is_duplicate && (
+                          <div className="text-yellow-300 font-medium">⚠️ Duplicate detected</div>
+                        )}
+                      </div>
+                      
+                      <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+                        <div className="font-medium mb-2 text-xs">AI Analysis:</div>
+                        <div className="text-[15px] text-white leading-relaxed whitespace-pre-wrap">
+                          {formatText(message.data.groq_response)}
+                        </div>
+                      </div>
+                      
+                      {renderAuditResult(message.data.audit_result)}
+                    </div>
+                  )}
+                  
+                  <div className="text-xs opacity-50 mt-2">
+                    {formatTimestamp(message.timestamp)}
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-2xl px-4 py-3 rounded-2xl shadow-lg bg-black text-white mr-auto rounded-bl-md border border-zinc-800">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                    <span className="text-[15px]">Processing...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Fixed bottom upload zone */}
+          <div className="fixed bottom-0 right-0 left-64 p-3 bg-black border-t border-zinc-800">
+            <div 
+              className={`border border-dashed rounded-lg p-3 text-center transition-colors cursor-pointer ${
+                isDragOver 
+                  ? 'border-blue-500 bg-blue-500/10' 
+                  : 'border-zinc-700 hover:border-blue-500 hover:bg-zinc-900/50'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                className="hidden" 
+                accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.tiff"
+                onChange={handleFileSelect}
+              />
+              <div className="text-zinc-400">
+                {isDragOver ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="text-lg">📁</div>
+                    <p className="text-sm">Drop the file here...</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="text-lg">📎</div>
+                    <div>
+                      <p className="text-sm">Drag & drop or click to upload a file</p>
+                      <p className="text-xs text-zinc-500 mt-1">Only compliant invoices accepted</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;

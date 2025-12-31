@@ -1,0 +1,12 @@
+pymupdf
+pymupdf4llm
+groq
+fastapi
+sqlalchemy
+pydantic
+uvicorn
+psycopg2-binary
+cloudinary
+python-multipart
+python-dotenv
+alembic
