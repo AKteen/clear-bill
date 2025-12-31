@@ -206,9 +206,7 @@ npm run build
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -216,11 +214,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Cloudinary](https://cloudinary.com/) for cloud storage
 - [Neon](https://neon.tech/) for serverless PostgreSQL
 - [PyMuPDF](https://pymupdf.readthedocs.io/) for PDF processing
-
-## 📞 Support
-
-For support, email support@yourcompany.com or create an issue on GitHub.
-
----
-
-**Built with ❤️ for automated document processing and compliance**
