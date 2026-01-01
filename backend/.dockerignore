@@ -1,0 +1,1 @@
+__pycache__\n*.pyc\n*.pyo\n*.pyd\n.Python\nenv\nvenv\n.venv\npip-log.txt\npip-delete-this-directory.txt\n.tox\n.coverage\n.coverage.*\n.cache\nnosetests.xml\ncoverage.xml\n*.cover\n*.log\n.git\n.mypy_cache\n.pytest_cache\n.hypothesis\n\n.DS_Store\n.vscode\n.idea

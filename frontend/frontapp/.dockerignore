@@ -1,0 +1,1 @@
+node_modules\nnpm-debug.log*\nyarn-debug.log*\nyarn-error.log*\nlerna-debug.log*\n\n.DS_Store\n.env.local\n.env.development.local\n.env.test.local\n.env.production.local\n\ndist\nbuild\n\n.vscode\n.idea
