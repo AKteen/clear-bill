@@ -5,6 +5,22 @@ ClearBill is a production-ready document processing application that combines AI
 <img width="1000" height="1000" alt="Clearbill-img" src="https://github.com/user-attachments/assets/17161ce4-8d09-4966-8bcb-dabc05178801" />
 
 
+## 🛠️ Tech Stack
+
+### Backend
+- **FastAPI** - High-performance Python web framework
+- **PostgreSQL** - Neon serverless database with connection pooling
+- **SQLAlchemy** - ORM with automatic migrations
+- **Groq API** - AI models (Llama-3.3-70b-versatile, meta-llama/llama-4-scout-17b-16e-instruct)
+- **PyMuPDF** - PDF processing and text extraction
+- **Cloudinary** - Cloud file storage and CDN
+
+### Frontend
+- **React 19** - Modern UI framework
+- **Vite** - Fast build tool and dev server
+- **Tailwind CSS** - Utility-first styling with custom dark theme
+- **Axios** - HTTP client for API communication
+
 
 ## 🚀 Features
 
@@ -28,22 +44,6 @@ ClearBill is a production-ready document processing application that combines AI
 - **Document History** - Sidebar with clickable document archive
 - **Real-time Processing** - Parallel upload and AI analysis
 - **Drag & Drop** - Intuitive file upload with visual feedback
-
-## 🛠️ Tech Stack
-
-### Backend
-- **FastAPI** - High-performance Python web framework
-- **PostgreSQL** - Neon serverless database with connection pooling
-- **SQLAlchemy** - ORM with automatic migrations
-- **Groq API** - AI models (Llama-3.3-70b-versatile, meta-llama/llama-4-scout-17b-16e-instruct)
-- **PyMuPDF** - PDF processing and text extraction
-- **Cloudinary** - Cloud file storage and CDN
-
-### Frontend
-- **React 19** - Modern UI framework
-- **Vite** - Fast build tool and dev server
-- **Tailwind CSS** - Utility-first styling with custom dark theme
-- **Axios** - HTTP client for API communication
 
 ## 📋 Prerequisites
 
